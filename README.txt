@@ -5,7 +5,7 @@ I modified the wp2zinnia management command that was included with Zinnia.
 Installation:
 
     $ cd my_app
-    $ mkdir managment
+    $ mkdir management
     $ touch management/__init__.py
     $ mkdir management/commands/
     $ touch management/commands/__init__.py
