@@ -135,7 +135,7 @@ class Command(LabelCommand):
             slug = slugify(post.title.text or '')[:255]
             try:
                 entry = Entry.objects.get(sites=self.SITE,
-                                          authors=self.default_author,
+                                          
                                           categories=category,
                                           status=status,
                                           title=title,
