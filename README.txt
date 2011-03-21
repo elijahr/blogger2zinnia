@@ -2,6 +2,10 @@ A django management command to import a Blogger blog into Zinnia.
 
 I modified the wp2zinnia management command that was included with Zinnia.
 
+Requirements:
+
+    gdata (http://code.google.com/p/gdata-python-client/)
+
 Installation:
 
     $ cd my_app
