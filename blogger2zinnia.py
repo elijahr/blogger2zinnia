@@ -35,7 +35,7 @@ class Command(LabelCommand):
     into Zinnia via Google's gdata API."""
     help = 'Import a Blogger blog into Zinnia.'
 
-    args = '--blogger-username=USERNAME --blogger-blog-id=BLOGGER_BLOG_ID --category-title=CATEGORY_TITLE --author=AUTHOR'
+    args = ''
 
     option_list = LabelCommand.option_list + (
         make_option('--blogger-username', dest='blogger_username', default='',
