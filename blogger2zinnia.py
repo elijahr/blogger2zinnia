@@ -71,16 +71,8 @@ class Command(LabelCommand):
 
         if not self.blogger_username:
             self.blogger_username = raw_input('Blogger username: ')
-
-        if not self.category_title:
-            self.category_title = raw_input('Category title for imported entries: ')
-
-        default_author = options.get('author')
-        if default_author:
-            try:
-                self.default_author = User.objects.get(username=default_author)
-            except User.DoesNotExist:
-                raise CommandError('Invalid Zinnia username for default author "%s"' % default_author)
+            if not self.blogger_username:
+                raise CommandError('Invalid Blogger username')
 
         self.blogger_password = getpass('Blogger password: ')
         try:
@@ -88,23 +80,38 @@ class Command(LabelCommand):
         except gdata_service.BadAuthentication:
             raise CommandError('Incorrect Blogger username or password')
 
+        default_author = options.get('author')
+        if default_author:
+            try:
+                self.default_author = User.objects.get(username=default_author)
+            except User.DoesNotExist:
+                raise CommandError('Invalid Zinnia username for default author "%s"' % default_author)
+        else:
+            self.default_author = User.objects.all()[0]
+
         if not self.blogger_blog_id:
             self.select_blog_id()
 
-        self.write_out(self.style.TITLE('Starting migration from Blogger to Zinnia %s:\n' % __version__))
+        if not self.category_title:
+            self.category_title = raw_input('Category title for imported entries: ')
+            if not self.category_title:
+                raise CommandError('Invalid category title')
 
+        self.write_out(self.style.TITLE('Starting migration from Blogger to Zinnia %s\n' % __version__))
         self.import_posts()
+        self.write_out(self.style.TITLE('Finished importing Blogger to Zinnia\n'))
+
 
     def select_blog_id(self):
         blogs_list = [blog for blog in self.blogger_manager.get_blogs()]
         while True:
-            print '\n'
             i = 0
             blogs = {}
+            self.write_out('\n')
             for blog in blogs_list:
                 i += 1
                 blogs[i] = blog
-                print '  %s) %s (%s)' % (i, blog.title.text, get_blog_id(blog))
+                self.write_out('\n  %s) %s (%s)' % (i, blog.title.text, get_blog_id(blog)))
             try:
                 blog_index = int(raw_input('\n  Select a blog to import: '))
                 blog = blogs[blog_index]
@@ -132,7 +139,7 @@ class Command(LabelCommand):
             status = DRAFT if is_draft(post) else PUBLISHED
             title = post.title.text or ''
             content = post.content.text or ''
-            slug = slugify(post.title.text or '')[:255]
+            slug = slugify(post.title.text or get_post_id(post))[:255]
             try:
                 entry = Entry.objects.get(sites=self.SITE,
                                           authors=self.default_author,
@@ -154,10 +161,13 @@ class Command(LabelCommand):
                 entry.last_update = convert_blogger_timestamp(post.updated.text)
                 entry.save()
                 entry.sites.add(self.SITE)
+                entry.categories.add(category)
                 entry.authors.add(self.default_author)
-                if entry.status == PUBLISHED:
+                try:
                     self.import_comments(entry, post)
-
+                except gdata_service.RequestError:
+                    # comments not available for this post
+                    pass
                 output = self.style.TITLE('Migrated %s + %s comments\n'
                     % (entry, len(Comment.objects.for_model(entry))))
 
@@ -209,7 +219,7 @@ def convert_blogger_timestamp(timestamp):
 def is_draft(post):
     if post.control:
         if post.control.draft:
-            if post.control.draft.text is 'yes':
+            if post.control.draft.text == 'yes':
                 return True
     return False
 
